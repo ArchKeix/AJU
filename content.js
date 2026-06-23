@@ -1,50 +1,72 @@
-// Turing Machine approach to pattern matching
 class TuringDetector {
-    constructor() {
-        this.currentState = 'start';
-        this.states = {
-            'start': { 
-                's': 's1', 'g': 'g1', 'j': 'j1', 'm': 'm1', 
-                'c': 'c1', 'r': 'r1', 'd': 'd1' 
-            },
-            's1': { 'l': 's2', 's': 'sc1' }, 's2': { 'o': 's3' }, 's3': { 't': 'q_match' },
-            'g1': { 'a': 'g2' }, 'g2': { 'c': 'g3' }, 'g3': { 'o': 'g4' }, 'g4': { 'r': 'q_match' },
-            'j1': { 'a': 'j2' }, 'j2': { 'c': 'j3' }, 'j3': { 'k': 'j4' }, 'j4': { 'p': 'j5' }, 'j5': { 'o': 'j6' }, 'j6': { 't': 'q_match' },
-            'm1': { 'a': 'm2' }, 'm2': { 'x': 'm3' }, 'm3': { 'w': 'm4' }, 'm4': { 'i': 'm5' }, 'm5': { 'n': 'q_match' },
-            'sc1': { 'c': 'sc2' }, 'sc2': { 'a': 'sc3' }, 'sc3': { 't': 'sc4' }, 'sc4': { 't': 'sc5' }, 'sc5': { 'e': 'sc6' }, 'sc6': { 'r': 'q_match' },
-            'c1': { 'a': 'c2' }, 'c2': { 's': 'c3' }, 'c3': { 'i': 'c4' }, 'c4': { 'n': 'c5' }, 'c5': { 'o': 'q_match' },
-            'r1': { 't': 'r2' }, 'r2': { 'p': 'q_match' },
-            'd1': { 'e': 'd2' }, 'd2': { 'p': 'd3' }, 'd3': { 'o': 'd4' }, 'd4': { 's': 'd5' }, 'd5': { 'i': 'd6' }, 'd6': { 't': 'q_match' }
+    constructor(inputString) {
+        this.tape = inputString.toLowerCase().split('');
+        this.head = 0;
+        this.state = 'q0';
+        this.foundKeywords = new Set();
+        this.keywords = {
+            'gacor': ['g', 'a', 'c', 'o', 'r'],
+            'slot': ['s', 'l', 'o', 't'],
+            'judi': ['j', 'u', 'd', 'i'],
+            'rtp': ['r', 't', 'p'],
+            'maxwin': ['m', 'a', 'x', 'w', 'i', 'n'],
+            'togel': ['t', 'o', 'g', 'e', 'l'],
+            'casino': ['c', 'a', 's', 'i', 'n', 'o'],
+            'jackpot': ['j', 'a', 'c', 'k', 'p', 'o', 't'],
+            'slot88': ['s', 'l', 'o', 't', '8', '8'],
+            'slot777': ['s', 'l', 'o', 't', '7', '7', '7'],
+            'perjudian': ['p', 'e', 'r', 'j', 'u', 'd', 'i', 'a', 'n'],
+            'taruhan': ['t', 'a', 'r', 'u', 'h', 'a', 'n'],
+            'bandar': ['b', 'a', 'n', 'd', 'a', 'r'],
         };
     }
-    process(text) {
-        for (let char of text.toLowerCase()) {
-            if (this.states[this.currentState] && this.states[this.currentState][char]) {
-                this.currentState = this.states[this.currentState][char];
-            } else {
-                this.currentState = this.states['start'][char] ? this.states['start'][char] : 'start';
+
+    // Mesin Turing untuk mencari kata (Simplified pattern recognition)
+    run() {
+        while (this.head < this.tape.length) {
+            let char = this.tape[this.head];
+
+            // Cek setiap keyword
+            for (let [word, chars] of Object.entries(this.keywords)) {
+                if (char === chars[0]) {
+                    let tempHead = this.head;
+                    let match = true;
+                    for (let i = 0; i < chars.length; i++) {
+                        if (this.tape[tempHead + i] !== chars[i]) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (match) {
+                        this.foundKeywords.add(word);
+                        // Operasi overwrite tape (tanda sudah terdeteksi)
+                        for (let i = 0; i < chars.length; i++) {
+                            this.tape[this.head + i] = 'X';
+                        }
+                    }
+                }
             }
-            if (this.currentState === 'q_match') return true;
+            // Gerakan Head (R)
+            this.head++;
         }
-        return false;
+        return this.foundKeywords.size >= 4;
     }
 }
-
-const detector = new TuringDetector();
 
 chrome.storage.local.get(['paused'], (result) => {
     if (result.paused) return;
 
-    const isJudol = detector.process(document.body.innerText);
+    const machine = new TuringDetector(document.body.innerText);
+    const isJudol = machine.run();
     
     if (isJudol) {
-        // Hapus semua isi halaman dan ganti dengan peringatan merah
+        // Hapus seluruh konten dan ganti dengan layar merah peringatan
         document.body.innerHTML = `
-            <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:red; color:white; z-index:2147483647; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family: sans-serif; text-align: center;">
-                <h1 style="font-size: 3rem;">⚠ PERINGATAN!</h1>
-                <p style="font-size: 1.5rem;">Web ini terindikasi JUDOL (Judi Online).</p>
+            <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:red; color:white; z-index:2147483647; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family: sans-serif; text-align: center; padding: 20px;">
+                <h1 style="font-size: 4rem; margin-bottom: 20px;">⚠ PERINGATAN</h1>
+                <p style="font-size: 2rem;">Situs ini terindikasi mengandung konten Judi Online.</p>
+                <p style="font-size: 1.2rem;">Akses telah diblokir demi keamanan Anda.</p>
             </div>
         `;
-        
     }
 });
